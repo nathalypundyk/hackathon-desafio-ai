@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { AdvancedMarker, APIProvider, Map, Pin, useMap } from '@vis.gl/react-google-maps'
 
+
 import { MarkerClusterer } from '@googlemaps/markerclusterer'
 import { Circle } from './Circle.jsx'
 
@@ -12,7 +13,7 @@ const center = {
 
 const MapComponent = ({locations=[]}) => {
     return (
-      <div className="map">
+      <div className="map rounded-3xl overflow-hidden my-5">
           <APIProvider
             apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}
             onLoad={() => console.log("Maps API has loaded.")}

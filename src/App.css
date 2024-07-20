@@ -2,9 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
-
 .map {
     height: 60vh;
+    margin: 20px;
 }
 
 .loader-dots div {

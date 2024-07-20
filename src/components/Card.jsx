@@ -1,4 +1,5 @@
 const Card = ({ nombre, tipo, direccion, descripcion }) => {
+  console.log({nombre});
   return (
     <div className="max-w-sm rounded overflow-hidden shadow-lg m-4">
       <div className="px-6 py-4">
