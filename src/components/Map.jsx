@@ -11,9 +11,8 @@ const center = {
 };
 
 const MapComponent = ({locations=[]}) => {
-  console.log(import.meta.env.VITE_GOOGLE_MAPS_API_KEY);
     return (
-      <div className="map">
+      <div className="map rounded-3xl overflow-hidden my-5">
           <APIProvider
             apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}
             onLoad={() => console.log("Maps API has loaded.")}

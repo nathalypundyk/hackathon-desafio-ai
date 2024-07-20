@@ -1,56 +1,90 @@
-import { useState } from 'react'
-import MapComponent from './components/Map.jsx'
+import { useState } from 'react';
+import MapComponent from './components/Map.jsx';
 import OpenAI from "openai";
 
-const ChatBot = () => {
+const ChatBot = ({ onAddPlace }) => {
+  const [input, setInput] = useState('');
+  const [messages, setMessages] = useState([]);
 
+  const handleSendMessage = async () => {
+    const openai = new OpenAI({
+      apiKey: import.meta.env.VITE_OPENAI_API_KEY,
+      dangerouslyAllowBrowser: true
+    });
+
+    try {
+      const response = await openai.chat.completions.create({
+        model: "gpt-4",
+        messages: [
+          {
+            "role": "system",
+            "content": "Necesito que seas un guía turístico de la ciudad de Encarnación, Paraguay. Cuando el usuario te pida lugares, devuelvas en formato JSON estos datos: resultado: [ { 'key': 'Nombre del lugar', 'type': 'El tipo del lugar. Categorías: Turístico, Comida, Desayunos y meriendas, Alojamiento, Tecnología, Compras, Otros', 'description': 'Una descripción con un texto devuelto por el chat-bot explicando por qué el lugar fue incluido en la lista', 'address': 'Dirección del lugar', 'location': { 'lat': xx.xxxxx, 'lng': xx.xxxxx } }, ... ]. El campo location es muy importante y debe contener la información de la latitud y longitud para poder pintar los marcadores en el mapa. Los valores de lat y lng deben ser numéricos, no cadenas de texto. Solo puedes proporcionar información para Encarnación, Paraguay. Si el usuario te saluda, dar una respuesta de bienvenida diciendo: 'Hola, soy tu guía turística, ¿dónde te apetece ir hoy?'"
+          },
+          {
+            "role": "user",
+            "content": input // Utiliza el valor del input del usuario
+          }
+        ],
+        temperature: 0.5,
+      });
+
+      // Extrae y analiza el JSON de la respuesta
+      const responseText = response.choices[0].message.content;
+      console.log('Contenido de la respuesta:', responseText);
+
+      // Intentar analizar el JSON de la respuesta
+      let places;
+      try {
+        const jsonString = responseText.match(/\[.*\]/s)[0];
+        places = JSON.parse(jsonString.replace(/'/g, '"'));
+        if (!Array.isArray(places)) {
+          throw new Error('El formato de los datos no es correcto');
+        }
+      } catch (error) {
+        console.error('Error al analizar el contenido JSON:', error);
+        return; // Salir si hay un error al analizar el contenido
+      }
+
+      // Actualiza el estado de mensajes y agrega los lugares obtenidos
+      setMessages([...messages, { text: input, user: true }, { text: JSON.stringify(places, null, 2), user: false }]);
+      setInput('');
+      onAddPlace(places); // Pasa solo el array de lugares
+    } catch (error) {
+      console.error('Error al enviar el mensaje a OpenAI:', error);
+    }
+  };
 
   return (
+    <div>
       <div>
-        <div>
-          {messages.map((msg, idx) => (
-            <div key={idx} style={{ textAlign: msg.user ? 'right' : 'left' }}>
-              {msg.text}
-            </div>
-          ))}
-        </div>
-        <input value={input} onChange={(e) => setInput(e.target.value)} />
-        <button onClick={handleSendMessage}>Enviar</button>
+        {messages.map((msg, idx) => (
+          <div key={idx} style={{ textAlign: msg.user ? 'right' : 'left' }}>
+            {msg.text}
+          </div>
+        ))}
       </div>
-  )
-}
-
-const openai = new OpenAI({
-  apiKey: import.meta.env.VITE_OPENAI_API_KEY,
-  dangerouslyAllowBrowser: true
-});
-
-const response = await openai.chat.completions.create({
-  model: "gpt-4",
-  messages: [
-    {
-      "role": "system",
-      "content": "necesito que seas un guía turístico de la ciudad de Encarnacion-Paraguay, que cuando el usuario te pida lugares para comer por ejemplo cerca de la costanera devuelvas en formato json  estos datos resultado: [ { 'key': 'Nombre del lugar', 'type': 'El tipo del lugar. Catgorias: Turístico, Comida, Desayunos y meriendas, Alojamiento, Tecnología, Compras, Otros', 'description': 'Una descripción con un texto devuelto por el chat-bot explicando por qué el lugar fué incluido en la lista', 'address': 'Dirección del lugar' 'location': { 'lat': xx.xxxxx. Debe ser un valor numérico, 'lng': xx.xxxxx. Debe ser un valor numérico } }, ... ] pero teniendo en cuenta esto El campo location es muy importante, pues debe contener la información de la latitud y longitud para poder pintar los marcadores en el mapa. Los valores de lat y lng deben ser numéricos, no cadenas de texto.ya que vamos a utilizar google maps y con esa respuesta en json el maps mostraria las ubicaciones de acuerdo a lo solicitado por el usuario y no podes ir mas alla de encarnacion-Paraguay, solo de esta ciudad es la app si el usuario te saluda dar una respuesta de bienvenida diciendo : Hola soy tu guia turistica ¿donde te apetece ir hoy?"
-    },
-    {
-      "role": "user",
-      "content": "Hola, necesito cines"
-    }
-  ],
-  temperature: 0.5,
-});
-
-console.log({ response});
+      <input value={input} onChange={(e) => setInput(e.target.value)} />
+      <button onClick={handleSendMessage}>Enviar</button>
+    </div>
+  );
+};
 
 const App = () => {
-  let [places, setPlaces] = useState([]);
+  const [places, setPlaces] = useState([]);
+
+  const addPlace = (newPlaces) => {
+    if (Array.isArray(newPlaces)) {
+      setPlaces(prevPlaces => [...prevPlaces, ...newPlaces]);
+    } else {
+      console.error('Se esperaba un array de lugares');
+    }
+  };
 
   return (
-    <>
-      <div className="w-screen h-screen m-0 p-3 bg-slate-500">
-        <MapComponent locations={places} />
-      </div>
-    </>
+    <div className="w-screen h-screen m-0 p-3 bg-slate-500">
+      <MapComponent locations={places} />
+      <ChatBot onAddPlace={addPlace} />
+    </div>
   );
 };
 
