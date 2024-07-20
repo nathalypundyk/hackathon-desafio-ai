@@ -11,6 +11,7 @@ const center = {
 };
 
 const MapComponent = ({locations=[]}) => {
+  console.log(import.meta.env.VITE_GOOGLE_MAPS_API_KEY);
     return (
       <div className="map">
           <APIProvider
