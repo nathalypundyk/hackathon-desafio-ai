@@ -1,17 +1,18 @@
 import { useState } from 'react';
 import MapComponent from './components/Map.jsx';
 import OpenAI from "openai";
-
+import LoaderModal from './components/LoaderModal.jsx';
 const ChatBot = ({ onAddPlace }) => {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState([]);
+  const [loading, setLoading] = useState(false); 
 
   const handleSendMessage = async () => {
     const openai = new OpenAI({
       apiKey: import.meta.env.VITE_OPENAI_API_KEY,
       dangerouslyAllowBrowser: true
     });
-
+    setLoading(true);
     try {
       const response = await openai.chat.completions.create({
         model: "gpt-4",
@@ -22,17 +23,15 @@ const ChatBot = ({ onAddPlace }) => {
           },
           {
             "role": "user",
-            "content": input // Utiliza el valor del input del usuario
+            "content": input 
           }
         ],
         temperature: 0.5,
       });
 
-      // Extrae y analiza el JSON de la respuesta
+      
       const responseText = response.choices[0].message.content;
       console.log('Contenido de la respuesta:', responseText);
-
-      // Intentar analizar el JSON de la respuesta
       let places;
       try {
         const jsonString = responseText.match(/\[.*\]/s)[0];
@@ -42,15 +41,20 @@ const ChatBot = ({ onAddPlace }) => {
         }
       } catch (error) {
         console.error('Error al analizar el contenido JSON:', error);
+        alert('Hubo un error al realizar la consulta. Intenta nuevamente.');
         return; // Salir si hay un error al analizar el contenido
       }
 
-      // Actualiza el estado de mensajes y agrega los lugares obtenidos
+      
       setMessages([...messages, { text: input, user: true }, { text: JSON.stringify(places, null, 2), user: false }]);
       setInput('');
       onAddPlace(places); // Pasa solo el array de lugares
     } catch (error) {
       console.error('Error al enviar el mensaje a OpenAI:', error);
+      alert('Hubo un error al enviar el mensaje a OpenAI. Intenta nuevamente.');
+    }
+    finally {
+      setLoading(false); 
     }
   };
 
@@ -63,8 +67,9 @@ const ChatBot = ({ onAddPlace }) => {
           </div>
         ))}
       </div>
-      <input value={input} onChange={(e) => setInput(e.target.value)} />
+      <input  value={input} onChange={(e) => setInput(e.target.value)} />
       <button onClick={handleSendMessage}>Enviar</button>
+      <LoaderModal isOpen={loading} text="Cargando..." />
     </div>
   );
 };
@@ -81,7 +86,7 @@ const App = () => {
   };
 
   return (
-    <div className="w-screen h-screen m-0 p-3 bg-slate-500">
+    <div className="w-screen h-screen m-0 p-3">
       <MapComponent locations={places} />
       <ChatBot onAddPlace={addPlace} />
     </div>
